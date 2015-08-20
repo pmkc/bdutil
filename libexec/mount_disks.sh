@@ -16,10 +16,25 @@
 
 set -e
 
+# Install software RAID configuration tools
+DEBIAN_FRONTEND=noninteractive install_application "mdadm"
+
+# Create the software RAID volume on all four Local SSD drives
+mdadm --create --verbose /dev/md0 --level=stripe --raid-devices=4 /dev/sdb /dev/sdc /dev/sdd /dev/sde
+
 # Get a list of disks from the metadata server.
 BASE_DISK_URL='http://metadata.google.internal/computeMetadata/v1beta1/instance/disks/'
 DISK_PATHS=$(curl ${BASE_DISK_URL})
 MOUNTED_DISKS=()
+
+# Mount the software RAID volume
+DISK_ID="/dev/md0"
+DATAMOUNT="/mnt/md0"
+mkdir -p ${DATAMOUNT}
+MOUNTED_DISKS+=(${DATAMOUNT})
+echo "Mounting '${DISK_ID}' under mount point '${DATAMOUNT}'..."
+MOUNT_TOOL=/usr/share/google/safe_format_and_mount
+${MOUNT_TOOL} -m 'mkfs.ext4 -F' ${DISK_ID} ${DATAMOUNT}
 
 for DISK_PATH in ${DISK_PATHS}; do
   # Use the metadata server to determine the official index/name of each disk.
@@ -34,6 +49,8 @@ for DISK_PATH in ${DISK_PATHS}; do
   fi
 
   if [[ "${DISK_TYPE}" == 'EPHEMERAL' ]]; then
+    echo "Skipping Ephemeral Disk $(DISK_NAME) assuming it is part of the software RAID volume."
+    continue
     DISK_PREFIX='ed'
   elif [[ "${DISK_TYPE}" == 'PERSISTENT' ]]; then
     DISK_PREFIX='pd'
