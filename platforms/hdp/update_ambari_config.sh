@@ -20,50 +20,29 @@ source hadoop_helpers.sh
 loginfo "Set up HDFS /tmp and /user dirs"
 initialize_hdfs_dirs admin
 
-
 AMBARI_CLUSTER=$(get_ambari_cluster_name)
 
-# update hadoop configuration to include the gcs connector
-if (( ${INSTALL_GCS_CONNECTOR} )) ; then
-  loginfo "Setting up GCS connector cache cleaner and configuration."
-  if (( ${ENABLE_NFS_GCS_FILE_CACHE} )); then
-    export GCS_METADATA_CACHE_TYPE='FILESYSTEM_BACKED'
-    export GCS_FILE_CACHE_DIRECTORY="$(get_nfs_mount_point)"
+# update hadoop configuration
+# Add GCS connector to HADOOP_CLASSPATH
+TEMPFILE=$(mktemp)
+/var/lib/ambari-server/resources/scripts/configs.sh \
+    get localhost ${AMBARI_CLUSTER} hadoop-env ${TEMPFILE}
+sed -i 's#\(^"content.*\)",$#\1\\nHADOOP_CLASSPATH=${HADOOP_CLASSPATH}:/usr/local/lib/hadoop/lib/*",#' ${TEMPFILE}
+/var/lib/ambari-server/resources/scripts/configs.sh \
+    set localhost ${AMBARI_CLUSTER} hadoop-env ${TEMPFILE}
 
-    setup_cache_cleaner
-  else
-    export GCS_METADATA_CACHE_TYPE='IN_MEMORY'
-    # For IN_MEMORY cache, this directory won't actually be used, but we set
-    # it to a sane default for easy manual experimentation of file caching.
-    export GCS_FILE_CACHE_DIRECTORY='/tmp/gcs_connector_metadata_cache'
-  fi
+# Misc configuration
+cat << EOF | xargs -n 3 /var/lib/ambari-server/resources/scripts/configs.sh \
+    set localhost ${AMBARI_CLUSTER}
+core-site fs.gs.impl  com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem
+core-site fs.AbstractFileSystem.gs.impl com.google.cloud.hadoop.fs.gcs.GoogleHadoopFS
+core-site fs.gs.project.id ${PROJECT}
+core-site fs.gs.system.bucket ${CONFIGBUCKET}
+core-site fs.gs.working.dir /
+capacity-scheduler yarn.scheduler.capacity.node-locality-delay -1
+EOF
 
-  # If it wasn't set at cluster creation configure the GCS connector.
-  if ! /var/lib/ambari-server/resources/scripts/configs.sh \
-      get localhost ${AMBARI_CLUSTER} core-site \
-      | grep -q '^"fs.gs'; then
-    subsitute_bash_in_json configuration.json
-    sed -n < configuration.json \
-        's/.*"\(fs\.\S*gs\.\S*\)"\s*:\s*"\([^"]*\)".*/\1 \2/p' \
-        | xargs -n 2 /var/lib/ambari-server/resources/scripts/configs.sh \
-        set localhost ${AMBARI_CLUSTER} core-site
-    # Will reload core-site.xml
-    SERVICES_TO_UPDATE+=" HDFS"
-  fi
-
-  loginfo "Adding /usr/local/lib/hadoop/lib to " \
-      "mapreduce.application.classpath."
-  NEW_CLASSPATH=$(/var/lib/ambari-server/resources/scripts/configs.sh \
-      get localhost ${AMBARI_CLUSTER} mapred-site \
-      | grep -E '^"mapreduce.application.classpath"' \
-      | tr -d \" \
-      | awk '{print "/usr/local/lib/hadoop/lib/*,"$3}' | sed 's/,$//')
-  /var/lib/ambari-server/resources/scripts/configs.sh \
-      set localhost ${AMBARI_CLUSTER} \
-      mapred-site mapreduce.application.classpath ${NEW_CLASSPATH}
-  sleep 10
-fi
-
+sleep 10
 loginfo "Restarting services, because Ambari usually requires it."
 SERVICE='ALL'
 ambari_service_stop
@@ -73,17 +52,3 @@ ambari_wait_requests_completed
 
 # Check GCS connectivity
 check_filesystem_accessibility
-
-# Set up pig view, which was added in Ambari 2.1.
-#
-if version_at_least "${AMBARI_VERSION}" '2.1'; then
-  # This should be done automatically but it wasn't as of 2016-12-21.
-  for view in PIG; do
-    # All of these views are currently 1.0.0
-    VIEW="${AMBARI_API}/views/${view}/versions/1.0.0/instances/AUTO_${view}_INSTANCE"
-    if ${AMBARI_CURL} ${VIEW} |& grep -q '404 Not Found'; then
-      ${AMBARI_CURL} -X POST ${VIEW} \
-        -d "{\"ViewInstanceInfo\": {\"cluster_handle\": 2}}"
-    fi
-  done
-fi

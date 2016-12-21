@@ -31,10 +31,4 @@ loginfo "installing GCS_CONNECTOR_JAR on each node"
   LOCAL_JAR="${LIB_JARS_DIR}/${JARNAME}"
 
   download_bd_resource "${GCS_CONNECTOR_JAR}" "${LOCAL_JAR}"
-
-  # link gcs connector into main hadoop lib dir
-  source <(grep "^export HADOOP_HOME=" /etc/hadoop/conf/hadoop-env.sh) || true
-  if [[ -d "${HADOOP_HOME}/lib/" ]]; then
-    ln -sv "${LOCAL_JAR}" "${HADOOP_HOME}/lib/"
-  fi
 fi

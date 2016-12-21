@@ -29,6 +29,9 @@ UPLOAD_FILES=()
 # Import hadoop2_env.sh just for the GCS_CONNECTOR_JAR.
 import_env hadoop2_env.sh
 
+# Disable NFS Cache for simplicty
+ENABLE_NFS_GCS_FILE_CACHE=false
+
 # Default to 4 workers plus master for good spreading of master daemons.
 NUM_WORKERS=4
 # Use CentOS instead of Debian.
@@ -45,8 +48,8 @@ MASTER_ATTACHED_PD_SIZE_GB=1500
 
 ## Amount of storage to give the boot disk.
 ## A full HDP stack starts to fill up 10 GB.
-MASTER_BOOT_DISK_SIZE_GB=${MASTER_BOOT_DISK_SIZE_GB:-50}
-WORKER_BOOT_DISK_SIZE_GB=${MASTER_BOOT_DISK_SIZE_GB:-50}
+MASTER_BOOT_DISK_SIZE_GB=20 #${MASTER_BOOT_DISK_SIZE_GB:-50}
+WORKER_BOOT_DISK_SIZE_GB=20 #${MASTER_BOOT_DISK_SIZE_GB:-50}
 
 # Install the full Java JDK. Most services need it
 INSTALL_JDK_DEVEL=true
@@ -84,7 +87,6 @@ import_env platforms/hdp/ambari_functions.sh
 if [[ -n "${BDUTIL_DIR}" ]]; then
   UPLOAD_FILES+=(
     "${BDUTIL_DIR}/libexec/hadoop_helpers.sh"
-    "${BDUTIL_DIR}/platforms/hdp/configuration.json"
     "${BDUTIL_DIR}/platforms/hdp/resources/public-hostname-gcloud.sh"
     "${BDUTIL_DIR}/platforms/hdp/resources/thp-disable.sh"
   )
