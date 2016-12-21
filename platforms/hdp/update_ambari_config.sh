@@ -74,16 +74,16 @@ ambari_wait_requests_completed
 # Check GCS connectivity
 check_filesystem_accessibility
 
-# Set up files and pig views, which was added in Ambari 2.1.
+# Set up pig view, which was added in Ambari 2.1.
 #
 if version_at_least "${AMBARI_VERSION}" '2.1'; then
-  # This should be done automatically but it wasn't as of 2016-03-16.
-  for view in FILES PIG; do
-    # Both of these views are currently 1.0.0
+  # This should be done automatically but it wasn't as of 2016-12-21.
+  for view in PIG; do
+    # All of these views are currently 1.0.0
     VIEW="${AMBARI_API}/views/${view}/versions/1.0.0/instances/AUTO_${view}_INSTANCE"
     if ${AMBARI_CURL} ${VIEW} |& grep -q '404 Not Found'; then
       ${AMBARI_CURL} -X POST ${VIEW} \
-        -d "{\"ViewInstanceInfo\": {\"cluster_handle\": \"${AMBARI_CLUSTER}\"}}"
+        -d "{\"ViewInstanceInfo\": {\"cluster_handle\": 2}}"
     fi
   done
 fi

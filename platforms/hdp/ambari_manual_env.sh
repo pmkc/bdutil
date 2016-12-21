@@ -56,7 +56,7 @@ JAVA_HOME=/etc/alternatives/java_sdk
 import_env platforms/hdp/ambari.conf
 
 ## Version of Ambari and location of YUM package repository
-AMBARI_VERSION="${AMBARI_VERSION:-2.2.1.0}"
+AMBARI_VERSION="${AMBARI_VERSION:-2.4.2.0}"
 AMBARI_REPO=${AMBARI_REPO:-http://public-repo-1.hortonworks.com/ambari/centos6/${AMBARI_VERSION:0:1}.x/updates/${AMBARI_VERSION}/ambari.repo}
 
 ## If 'true', URLs for web interfaces, such as the jobtracker will below
