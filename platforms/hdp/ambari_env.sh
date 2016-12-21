@@ -28,13 +28,13 @@ import_env platforms/hdp/ambari_manual_env.sh
 
 # The distribution to install on your cluster.
 AMBARI_STACK="${AMBARI_STACK:-HDP}"
-AMBARI_STACK_VERSION="${AMBARI_STACK_VERSION:-2.4}"
+AMBARI_STACK_VERSION="${AMBARI_STACK_VERSION:-2.5}"
 
 ## The components of that distribution to install on the cluster.
 # Default is all but Kerberos, Apache Knox, Apache Ranger, and Hortonworks
 # SmartSense.
 AMBARI_SERVICES="${AMBARI_SERVICES:-ACCUMULO AMBARI_METRICS ATLAS FALCON FLUME
-    GANGLIA HBASE HDFS HIVE KAFKA MAHOUT MAPREDUCE2 OOZIE PIG SLIDER SPARK SQOOP
+    HBASE HDFS HIVE KAFKA MAHOUT MAPREDUCE2 OOZIE PIG SLIDER SPARK SPARK2 SQOOP
     STORM TEZ YARN ZOOKEEPER}"
 
 
